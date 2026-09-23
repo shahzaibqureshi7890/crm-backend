@@ -14,7 +14,10 @@ import {
 } from "../controllers/chat.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router: Router = Router();
-const temporaryUploadDirectory = path.join(process.cwd(), "uploads", "tmp");
+// Vercel ke liye writable /tmp path, local ke liye project folder
+const temporaryUploadDirectory = process.env.VERCEL
+  ? path.join("/tmp", "uploads", "tmp")
+  : path.join(process.cwd(), "uploads", "tmp");
 fs.mkdirSync(temporaryUploadDirectory, {
   recursive: true,
 });
