@@ -28,13 +28,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 // Render/Vercel Proxy Settings (Required for HTTPS Cookie Auth)
 app.set("trust proxy", 1);
-// Self-healing uploads directory setup (tries local cwd, automatically falls back to os.tmpdir() if read-only)
-let uploadsDir = path.resolve(process.cwd(), "uploads");
+// Bulletproof uploads directory setup for Vercel & Local
+let uploadsDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "uploads")
+  : path.resolve(process.cwd(), "uploads");
 try {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
 } catch (error) {
+  // Ultimate fallback to os.tmpdir() if any error occurs
   uploadsDir = path.join(os.tmpdir(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
