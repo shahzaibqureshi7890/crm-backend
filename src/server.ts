@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -24,7 +24,7 @@ import {
 } from "./socket/presence.js";
 import { registerChatSocket } from "./socket/chat.socket.js";
 dotenv.config();
-const app = express();
+const app: Application = express();
 const PORT = Number(process.env.PORT) || 5000;
 // Render/Vercel Proxy Settings (Required for HTTPS Cookie Auth)
 app.set("trust proxy", 1);
@@ -131,16 +131,20 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use(errorMiddleware);
-const startServer = async () => {
-  try {
-    await pool.query("SELECT 1");
-    console.log("MySQL database connected successfully.");
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("MySQL database connection failed:", error);
-    process.exit(1);
-  }
-};
-startServer();
+// Only listen locally, export app for Vercel Serverless Function
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  const startServer = async () => {
+    try {
+      await pool.query("SELECT 1");
+      console.log("MySQL database connected successfully.");
+      httpServer.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    } catch (error) {
+      console.error("MySQL database connection failed:", error);
+      process.exit(1);
+    }
+  };
+  startServer();
+}
+export default app;
