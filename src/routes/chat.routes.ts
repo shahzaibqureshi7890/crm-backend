@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import {
   createConversation,
   deleteMessage,
@@ -14,13 +15,18 @@ import {
 } from "../controllers/chat.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router: Router = Router();
-// Vercel ke liye writable /tmp path, local ke liye project folder
-const temporaryUploadDirectory = process.env.VERCEL
-  ? path.join("/tmp", "uploads", "tmp")
-  : path.join(process.cwd(), "uploads", "tmp");
-fs.mkdirSync(temporaryUploadDirectory, {
-  recursive: true,
-});
+// Self-healing temporary upload directory setup (tries local cwd, falls back to os.tmpdir() if read-only)
+let temporaryUploadDirectory = path.join(process.cwd(), "uploads", "tmp");
+try {
+  if (!fs.existsSync(temporaryUploadDirectory)) {
+    fs.mkdirSync(temporaryUploadDirectory, { recursive: true });
+  }
+} catch (error) {
+  temporaryUploadDirectory = path.join(os.tmpdir(), "uploads", "tmp");
+  if (!fs.existsSync(temporaryUploadDirectory)) {
+    fs.mkdirSync(temporaryUploadDirectory, { recursive: true });
+  }
+}
 const upload = multer({
   dest: temporaryUploadDirectory,
   limits: {
