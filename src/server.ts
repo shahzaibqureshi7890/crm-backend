@@ -27,10 +27,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 // Render Cloud Proxy Settings (Required for HTTPS Cookie Auth)
 app.set("trust proxy", 1);
-// Uploads directory auto-creation to prevent crashes on Render
-const uploadsDir = path.resolve(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Vercel ke liye writable /tmp path, local ke liye project folder (with try-catch safety)
+const uploadsDir = process.env.VERCEL
+  ? path.join("/tmp", "uploads")
+  : path.resolve(process.cwd(), "uploads");
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (error) {
+  console.log("Uploads directory creation skipped on read-only system:", error);
 }
 // Clean and validate Allowed Origins
 const rawFrontendUrl = process.env.FRONTEND_URL || "";
