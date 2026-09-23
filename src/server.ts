@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import pool from "./config/database.js";
@@ -25,32 +26,33 @@ import { registerChatSocket } from "./socket/chat.socket.js";
 dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
-// Render Cloud Proxy Settings (Required for HTTPS Cookie Auth)
+// Render/Vercel Proxy Settings (Required for HTTPS Cookie Auth)
 app.set("trust proxy", 1);
-// Vercel ke liye writable /tmp path, local ke liye project folder (with try-catch safety)
-const uploadsDir = process.env.VERCEL
-  ? path.join("/tmp", "uploads")
-  : path.resolve(process.cwd(), "uploads");
+// Self-healing uploads directory setup (tries local cwd, automatically falls back to os.tmpdir() if read-only)
+let uploadsDir = path.resolve(process.cwd(), "uploads");
 try {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
 } catch (error) {
-  console.log("Uploads directory creation skipped on read-only system:", error);
+  uploadsDir = path.join(os.tmpdir(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 // Clean and validate Allowed Origins
 const rawFrontendUrl = process.env.FRONTEND_URL || "";
-const cleanFrontendUrl = rawFrontendUrl.replace(/\/$/, ""); // Remove trailing slash
+const cleanFrontendUrl = rawFrontendUrl.replace(/\/$/, "");
 const allowedOrigins = [
   cleanFrontendUrl,
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ].filter(Boolean);
 const isOriginAllowed = (origin: string | undefined): boolean => {
-  if (!origin) return true; // Postman, Mobile apps, or Same-Origin
+  if (!origin) return true;
   const cleanOrigin = origin.replace(/\/$/, "");
   return (
-    allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith(".vercel.app") // Automatically allows all Vercel deployments/previews
+    allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith(".vercel.app")
   );
 };
 const corsOptions: cors.CorsOptions = {
@@ -58,17 +60,15 @@ const corsOptions: cors.CorsOptions = {
     if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Fallback to avoid breaking cross-browser preflight checks
+      callback(null, true);
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
-// Apply CORS Express Middleware
 app.use(cors(corsOptions));
 const httpServer = createServer(app);
-// Socket.IO Setup
 const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
@@ -108,19 +108,15 @@ io.on("connection", (socket) => {
     }
   });
 });
-// Express Middlewares
 app.use(express.json());
 app.use(cookieParser());
-// Static Uploads Path
 app.use("/uploads", express.static(uploadsDir));
-// Root Route
 app.get("/", (_req, res) => {
   res.json({
     success: true,
     message: "CRM Backend API is running",
   });
 });
-// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/trucks", truckRoutes);
