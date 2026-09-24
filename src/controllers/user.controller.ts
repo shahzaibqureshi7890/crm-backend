@@ -8,6 +8,11 @@ export const getProfile: RequestHandler = asyncHandler(async (req, res) => {
     throw new Error("Authentication required.");
   }
   const user = await getUserProfile(authenticatedRequest.user.userId);
+  // Yeh header add karein taake browser cache (304) na kare
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
   res.status(200).json({
     success: true,
     message: "Profile fetched successfully.",
