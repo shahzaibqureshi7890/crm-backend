@@ -9,11 +9,10 @@ const isProduction = process.env.NODE_ENV === "production";
 const setAuthCookie = (res: Response, token: string): void => {
   res.cookie("accessToken", token, {
     httpOnly: true,
-    // Cross-domain (Vercel -> Render) cookie support ke liye:
-    // Production (HTTPS) mein SameSite="none" aur Secure=true zaroori hai.
-    // Localhost (HTTP) par SameSite="lax" aur Secure=false hona chahiye.
+    // Cross-domain (Vercel -> Vercel/Render) cookie support ke liye:
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
+    partitioned: isProduction, // Modern browsers ki cross-site third-party cookie policy ke liye zaroori hai
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     path: "/",
   });
@@ -48,6 +47,7 @@ export const logout: RequestHandler = asyncHandler(
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      partitioned: isProduction,
       path: "/",
     });
     res.status(200).json({
