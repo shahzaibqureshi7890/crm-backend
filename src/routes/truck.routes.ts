@@ -1,5 +1,4 @@
 import { Router } from "express";
-
 import {
   addGalleryImage,
   create,
@@ -9,19 +8,13 @@ import {
   removeGalleryImage,
   update,
 } from "../controllers/truck.controller.js";
-
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { uploadImages } from "../middlewares/upload.middleware.js";
-
 const router: Router = Router();
-
 router.use(authMiddleware);
-
 // Trucks CRUD
 router.get("/", getTrucks);
-
 router.get("/:id", getTruck);
-
 router.post(
   "/",
   uploadImages.fields([
@@ -36,7 +29,6 @@ router.post(
   ]),
   create,
 );
-
 router.put(
   "/:id",
   uploadImages.fields([
@@ -51,9 +43,7 @@ router.put(
   ]),
   update,
 );
-
 router.delete("/:id", remove);
-
 // Truck gallery
 router.post(
   "/:id/gallery",
@@ -65,7 +55,5 @@ router.post(
   ]),
   addGalleryImage,
 );
-
 router.delete("/:id/gallery/:imageId", removeGalleryImage);
-
 export default router;

@@ -1,8 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "node:path";
-import fs from "node:fs";
-import os from "node:os";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import {
   createConversation,
   deleteMessage,
@@ -15,20 +14,31 @@ import {
 } from "../controllers/chat.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 const router: Router = Router();
-// Self-healing temporary upload directory setup (tries local cwd, falls back to os.tmpdir() if read-only)
-let temporaryUploadDirectory = path.join(process.cwd(), "uploads", "tmp");
-try {
-  if (!fs.existsSync(temporaryUploadDirectory)) {
-    fs.mkdirSync(temporaryUploadDirectory, { recursive: true });
-  }
-} catch (error) {
-  temporaryUploadDirectory = path.join(os.tmpdir(), "uploads", "tmp");
-  if (!fs.existsSync(temporaryUploadDirectory)) {
-    fs.mkdirSync(temporaryUploadDirectory, { recursive: true });
-  }
-}
+const chatStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "fleet_crm/chat_files",
+    resource_type: "auto",
+    allowed_formats: [
+      "jpg",
+      "png",
+      "jpeg",
+      "webp",
+      "pdf",
+      "txt",
+      "csv",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+      "zip",
+    ],
+  } as any,
+});
 const upload = multer({
-  dest: temporaryUploadDirectory,
+  storage: chatStorage,
   limits: {
     fileSize: 10 * 1024 * 1024,
     files: 1,

@@ -174,16 +174,14 @@ export const downloadFile: RequestHandler = asyncHandler(
       });
       return;
     }
-    res.download(file.file_path, file.original_name, async (error) => {
-      if (!error) {
-        try {
-          await markChatFileDownloaded(file.id, userId);
-        } catch {
-          // Download succeeded; tracking failure
-          // should not affect the completed download.
-        }
-      }
-    });
+    // Mark file as downloaded in database first
+    try {
+      await markChatFileDownloaded(file.id, userId);
+    } catch {
+      // Tracking failure should not block file access
+    }
+    // Redirect to Cloudinary secure URL so the browser can download/view it directly
+    res.redirect(file.file_path);
   },
 );
 export const deleteMessage: RequestHandler = asyncHandler(

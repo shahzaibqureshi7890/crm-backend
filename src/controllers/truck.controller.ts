@@ -1,7 +1,5 @@
 import type { Request, RequestHandler, Response } from "express";
-
 import { asyncHandler } from "../utils/async-handler.js";
-
 import {
   createTruck,
   createTruckGalleryImage,
@@ -11,13 +9,11 @@ import {
   removeTruckGalleryImage,
   updateTruck,
 } from "../services/truck.service.js";
-
 import {
   validateCreateTruckInput,
   validateTruckId,
   validateUpdateTruckInput,
 } from "../validators/truck.validator.js";
-
 const getParamValue = (
   value: string | string[] | undefined,
   paramName: string,
@@ -25,58 +21,44 @@ const getParamValue = (
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`Invalid ${paramName}.`);
   }
-
   return value;
 };
-
 type TruckUploadedFiles = {
   featuredImage?: Express.Multer.File[];
   galleryImages?: Express.Multer.File[];
 };
-
 const getTruckUploadedFiles = (req: Request): TruckUploadedFiles => {
   if (!req.files || typeof req.files !== "object" || Array.isArray(req.files)) {
     return {};
   }
-
   return req.files as TruckUploadedFiles;
 };
-
 export const getTrucks: RequestHandler = asyncHandler(
   async (_req: Request, res: Response) => {
     const trucks = await getAllTrucks();
-
     res.status(200).json({
       success: true,
       trucks,
     });
   },
 );
-
 export const getTruck: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const id = getParamValue(req.params.id, "truck ID");
-
     const truckId = validateTruckId(id);
-
     const truck = await getTruckById(truckId);
-
     res.status(200).json({
       success: true,
       truck,
     });
   },
 );
-
 export const create: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const truckData = validateCreateTruckInput(req.body);
-
     const files = getTruckUploadedFiles(req);
-
     const featuredImage = files.featuredImage?.[0];
     const galleryImages = files.galleryImages ?? [];
-
     const truck = featuredImage
       ? await createTruck(truckData, {
           featuredImage,
@@ -85,7 +67,6 @@ export const create: RequestHandler = asyncHandler(
       : await createTruck(truckData, {
           galleryImages,
         });
-
     res.status(201).json({
       success: true,
       message: "Truck created successfully.",
@@ -93,20 +74,14 @@ export const create: RequestHandler = asyncHandler(
     });
   },
 );
-
 export const update: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const id = getParamValue(req.params.id, "truck ID");
-
     const truckId = validateTruckId(id);
-
     const truckData = validateUpdateTruckInput(req.body);
-
     const files = getTruckUploadedFiles(req);
-
     const featuredImage = files.featuredImage?.[0];
     const galleryImages = files.galleryImages ?? [];
-
     const truck = featuredImage
       ? await updateTruck(truckId, truckData, {
           featuredImage,
@@ -115,7 +90,6 @@ export const update: RequestHandler = asyncHandler(
       : await updateTruck(truckId, truckData, {
           galleryImages,
         });
-
     res.status(200).json({
       success: true,
       message: "Truck updated successfully.",
@@ -123,41 +97,28 @@ export const update: RequestHandler = asyncHandler(
     });
   },
 );
-
 export const remove: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const id = getParamValue(req.params.id, "truck ID");
-
     const truckId = validateTruckId(id);
-
     await removeTruck(truckId);
-
     res.status(200).json({
       success: true,
       message: "Truck deleted successfully.",
     });
   },
 );
-
 export const addGalleryImage: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const id = getParamValue(req.params.id, "truck ID");
-
     const truckId = validateTruckId(id);
-
     const files = getTruckUploadedFiles(req);
-
     const galleryImage = files.galleryImages?.[0];
-
     if (!galleryImage) {
       throw new Error("Gallery image is required.");
     }
-
-    const truck = await createTruckGalleryImage(
-      truckId,
-      galleryImage.originalname,
-    );
-
+    // Using galleryImage.path to get the Cloudinary secure URL instead of originalname
+    const truck = await createTruckGalleryImage(truckId, galleryImage.path);
     res.status(201).json({
       success: true,
       message: "Gallery image added successfully.",
@@ -165,18 +126,13 @@ export const addGalleryImage: RequestHandler = asyncHandler(
     });
   },
 );
-
 export const removeGalleryImage: RequestHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const id = getParamValue(req.params.id, "truck ID");
-
     const imageIdParam = getParamValue(req.params.imageId, "gallery image ID");
-
     const truckId = validateTruckId(id);
     const imageId = validateTruckId(imageIdParam);
-
     const truck = await removeTruckGalleryImage(truckId, imageId);
-
     res.status(200).json({
       success: true,
       message: "Gallery image deleted successfully.",

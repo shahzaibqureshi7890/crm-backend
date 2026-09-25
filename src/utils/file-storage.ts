@@ -1,171 +1,67 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
-
 import type { Express } from "express";
-
-const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
-
-export const getTruckUploadDirectory = (truckId: number): string => {
-  return path.join(UPLOADS_ROOT, "trucks", String(truckId));
-};
-
-export const getTruckFeaturedDirectory = (truckId: number): string => {
-  return path.join(getTruckUploadDirectory(truckId), "featured");
-};
-
-export const getTruckGalleryDirectory = (truckId: number): string => {
-  return path.join(getTruckUploadDirectory(truckId), "gallery");
-};
-
-const ensureDirectory = async (directory: string): Promise<void> => {
-  await fs.mkdir(directory, {
-    recursive: true,
-  });
-};
-
-const generateUniqueFileName = (originalName: string): string => {
-  const extension = path.extname(originalName);
-  const baseName = path.basename(originalName, extension);
-
-  const safeBaseName = baseName
-    .trim()
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .replace(/-+/g, "-");
-
-  return `${safeBaseName || "image"}-${randomUUID()}${extension.toLowerCase()}`;
-};
-
+import { v2 as cloudinary } from "cloudinary";
+/**
+ * When using CloudinaryStorage with multer, file.path contains the secure Cloudinary URL,
+ * and file.filename contains the Cloudinary public_id.
+ */
 export const saveTruckFeaturedImage = async (
-  truckId: number,
+  _truckId: number,
   file: Express.Multer.File,
 ): Promise<string> => {
-  const directory = getTruckFeaturedDirectory(truckId);
-
-  await ensureDirectory(directory);
-
-  const fileName = generateUniqueFileName(file.originalname);
-
-  const filePath = path.join(directory, fileName);
-
-  await fs.writeFile(filePath, file.buffer);
-
-  return fileName;
+  // file.path holds the Cloudinary URL from multer-storage-cloudinary
+  return file.path;
 };
-
 export const saveTruckGalleryImages = async (
-  truckId: number,
+  _truckId: number,
   files: Express.Multer.File[],
 ): Promise<string[]> => {
-  const directory = getTruckGalleryDirectory(truckId);
-
-  await ensureDirectory(directory);
-
-  const fileNames: string[] = [];
-
-  for (const file of files) {
-    const fileName = generateUniqueFileName(file.originalname);
-
-    const filePath = path.join(directory, fileName);
-
-    await fs.writeFile(filePath, file.buffer);
-
-    fileNames.push(fileName);
-  }
-
-  return fileNames;
+  return files.map((file) => file.path);
 };
-
 export const deleteTruckFeaturedImage = async (
-  truckId: number,
-  fileName: string | null,
+  _truckId: number,
+  fileUrl: string | null,
 ): Promise<void> => {
-  if (!fileName) {
-    return;
-  }
-
-  const filePath = path.join(getTruckFeaturedDirectory(truckId), fileName);
-
-  await deleteFileIfExists(filePath);
+  if (!fileUrl) return;
+  await deleteCloudinaryFileByUrl(fileUrl);
 };
-
 export const deleteTruckGalleryImage = async (
-  truckId: number,
-  fileName: string,
+  _truckId: number,
+  fileUrl: string,
 ): Promise<void> => {
-  const filePath = path.join(getTruckGalleryDirectory(truckId), fileName);
-
-  await deleteFileIfExists(filePath);
+  await deleteCloudinaryFileByUrl(fileUrl);
 };
-
 export const deleteTruckUploadDirectory = async (
-  truckId: number,
+  _truckId: number,
 ): Promise<void> => {
-  const directory = getTruckUploadDirectory(truckId);
-
-  await fs.rm(directory, {
-    recursive: true,
-    force: true,
-  });
+  // Cloudinary files are managed via public IDs or URLs; individual cleanup is handled above.
 };
-
-export const getDriverUploadDirectory = (driverId: number): string => {
-  return path.join(UPLOADS_ROOT, "drivers", String(driverId));
-};
-
-export const getDriverProfileDirectory = (driverId: number): string => {
-  return path.join(getDriverUploadDirectory(driverId), "profile");
-};
-
 export const saveDriverProfileImage = async (
-  driverId: number,
+  _driverId: number,
   file: Express.Multer.File,
 ): Promise<string> => {
-  const directory = getDriverProfileDirectory(driverId);
-
-  await ensureDirectory(directory);
-
-  const fileName = generateUniqueFileName(file.originalname);
-
-  const filePath = path.join(directory, fileName);
-
-  await fs.writeFile(filePath, file.buffer);
-
-  return fileName;
+  return file.path;
 };
-
 export const deleteDriverProfileImage = async (
-  driverId: number,
-  fileName: string | null,
+  _driverId: number,
+  fileUrl: string | null,
 ): Promise<void> => {
-  if (!fileName) {
-    return;
-  }
-
-  const filePath = path.join(getDriverProfileDirectory(driverId), fileName);
-
-  await deleteFileIfExists(filePath);
+  if (!fileUrl) return;
+  await deleteCloudinaryFileByUrl(fileUrl);
 };
-
 export const deleteDriverUploadDirectory = async (
-  driverId: number,
-): Promise<void> => {
-  const directory = getDriverUploadDirectory(driverId);
-
-  await fs.rm(directory, {
-    recursive: true,
-    force: true,
-  });
-};
-
-const deleteFileIfExists = async (filePath: string): Promise<void> => {
+  _driverId: number,
+): Promise<void> => {};
+// Helper to delete an asset from Cloudinary using its secure URL
+const deleteCloudinaryFileByUrl = async (fileUrl: string): Promise<void> => {
   try {
-    await fs.unlink(filePath);
-  } catch (error) {
-    const nodeError = error as NodeJS.ErrnoException;
-
-    if (nodeError.code !== "ENOENT") {
-      throw error;
+    // Extract public ID from Cloudinary URL if possible, or handle deletion
+    const regex = /\/v\d+\/(.+)\.[a-zA-Z0-9]+$/;
+    const match = fileUrl.match(regex);
+    if (match && match[1]) {
+      const publicId = match[1];
+      await cloudinary.uploader.destroy(publicId);
     }
+  } catch (error) {
+    console.error("Failed to delete file from Cloudinary:", error);
   }
 };

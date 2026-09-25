@@ -24,10 +24,7 @@ import type {
   ConversationListItem,
   Message,
 } from "../types/chat.types.js";
-import {
-  deleteStoredChatFile,
-  saveChatFile,
-} from "../utils/chat-file-storage.js";
+import { v2 as cloudinary } from "cloudinary";
 const MAX_CHAT_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -166,9 +163,11 @@ export const sendChatFileMessage = async (
     throw new AppError("This file type is not allowed.", 400);
   }
   await validateReplyTarget(conversationId, senderId, replyToMessageId);
-  let storedFile: Awaited<ReturnType<typeof saveChatFile>> | null = null;
+  // When using multer-storage-cloudinary, file.path contains the secure URL,
+  // and file.filename (or file.filename / public_id) holds the identifier.
+  const fileUrl = file.path;
+  const storedName = file.filename || file.originalname;
   try {
-    storedFile = await saveChatFile(file.path, file.originalname);
     await restoreConversationForUser(conversationId, senderId);
     const messageId = await createMessage(
       conversationId,
@@ -180,8 +179,8 @@ export const sendChatFileMessage = async (
     await createMessageFile(
       messageId,
       file.originalname,
-      storedFile.storedName,
-      storedFile.relativePath,
+      storedName,
+      fileUrl, // Saving Cloudinary secure URL as filePath
       file.mimetype,
       file.size,
     );
@@ -192,8 +191,17 @@ export const sendChatFileMessage = async (
     }
     return mapMessageResponse(message);
   } catch (error) {
-    if (storedFile) {
-      await deleteStoredChatFile(storedFile.absolutePath);
+    // If message creation fails, delete the uploaded file from Cloudinary using URL
+    if (fileUrl) {
+      try {
+        const regex = /\/v\d+\/(.+)\.[a-zA-Z0-9]+$/;
+        const match = fileUrl.match(regex);
+        if (match && match[1]) {
+          await cloudinary.uploader.destroy(match[1]);
+        }
+      } catch (cloudinaryError) {
+        console.error("Failed to cleanup Cloudinary file:", cloudinaryError);
+      }
     }
     throw error;
   }
