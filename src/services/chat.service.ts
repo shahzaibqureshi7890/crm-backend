@@ -163,8 +163,6 @@ export const sendChatFileMessage = async (
     throw new AppError("This file type is not allowed.", 400);
   }
   await validateReplyTarget(conversationId, senderId, replyToMessageId);
-  // When using multer-storage-cloudinary, file.path contains the secure URL,
-  // and file.filename (or file.filename / public_id) holds the identifier.
   const fileUrl = file.path;
   const storedName = file.filename || file.originalname;
   try {
@@ -180,7 +178,7 @@ export const sendChatFileMessage = async (
       messageId,
       file.originalname,
       storedName,
-      fileUrl, // Saving Cloudinary secure URL as filePath
+      fileUrl,
       file.mimetype,
       file.size,
     );
@@ -191,7 +189,6 @@ export const sendChatFileMessage = async (
     }
     return mapMessageResponse(message);
   } catch (error) {
-    // If message creation fails, delete the uploaded file from Cloudinary using URL
     if (fileUrl) {
       try {
         const regex = /\/v\d+\/(.+)\.[a-zA-Z0-9]+$/;

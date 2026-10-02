@@ -113,15 +113,24 @@ export const addGalleryImage: RequestHandler = asyncHandler(
     const id = getParamValue(req.params.id, "truck ID");
     const truckId = validateTruckId(id);
     const files = getTruckUploadedFiles(req);
-    const galleryImage = files.galleryImages?.[0];
-    if (!galleryImage) {
-      throw new Error("Gallery image is required.");
+    const galleryImages = files.galleryImages ?? [];
+    if (galleryImages.length === 0) {
+      res.status(200).json({
+        success: true,
+        message: "No gallery images provided.",
+        truck: await getTruckById(truckId),
+      });
+      return;
     }
-    // Using galleryImage.path to get the Cloudinary secure URL instead of originalname
-    const truck = await createTruckGalleryImage(truckId, galleryImage.path);
+    let truck;
+    for (const file of galleryImages) {
+      if (file.path) {
+        truck = await createTruckGalleryImage(truckId, file.path);
+      }
+    }
     res.status(201).json({
       success: true,
-      message: "Gallery image added successfully.",
+      message: "Gallery images added successfully.",
       truck,
     });
   },

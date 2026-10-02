@@ -7,7 +7,6 @@ import type {
   MessageFile,
   MessageReply,
 } from "../types/chat.types.js";
-
 interface ConversationRow extends RowDataPacket {
   id: number;
   user_one_id: number;
@@ -15,7 +14,6 @@ interface ConversationRow extends RowDataPacket {
   created_at: Date;
   updated_at: Date;
 }
-
 interface ConversationParticipantRow extends RowDataPacket {
   id: number;
   conversation_id: number;
@@ -23,22 +21,18 @@ interface ConversationParticipantRow extends RowDataPacket {
   hidden_at: Date | null;
   created_at: Date;
 }
-
 interface MessageRow extends RowDataPacket {
   id: number;
   conversation_id: number;
   sender_id: number;
   content: string;
   reply_to_message_id: number | null;
-
   reply_to_id: number | null;
   reply_to_sender_id: number | null;
   reply_to_content: string | null;
   reply_to_is_deleted: number | null;
   reply_to_created_at: Date | null;
-
   message_type: "text" | "file";
-
   file_id: number | null;
   file_message_id: number | null;
   file_original_name: string | null;
@@ -48,35 +42,29 @@ interface MessageRow extends RowDataPacket {
   file_size: number | null;
   file_downloaded_at: Date | null;
   file_created_at: Date | null;
-
   is_deleted: boolean;
   deleted_at: Date | null;
   created_at: Date;
 }
-
 interface ConversationListRow extends RowDataPacket {
   id: number;
   user_one_id: number;
   user_two_id: number;
   created_at: Date;
   updated_at: Date;
-
   other_user_id: number;
   other_user_name: string;
   other_user_email: string;
-
   last_message_content: string | null;
   last_message_is_deleted: number | null;
   last_message_sender_id: number | null;
   last_message_created_at: Date | null;
   last_message_type: "text" | "file" | null;
-
   last_message_reply_to_id: number | null;
   last_message_reply_to_sender_id: number | null;
   last_message_reply_to_content: string | null;
   last_message_reply_to_is_deleted: number | null;
   last_message_reply_to_created_at: Date | null;
-
   last_file_id: number | null;
   last_file_message_id: number | null;
   last_file_original_name: string | null;
@@ -86,7 +74,6 @@ interface ConversationListRow extends RowDataPacket {
   last_file_size: number | null;
   last_file_created_at: Date | null;
 }
-
 interface MessageFileRow extends RowDataPacket {
   id: number;
   message_id: number;
@@ -99,7 +86,6 @@ interface MessageFileRow extends RowDataPacket {
   message_is_deleted: number;
   created_at: Date;
 }
-
 const mapMessageReply = (
   row: Pick<
     MessageRow,
@@ -117,7 +103,6 @@ const mapMessageReply = (
   ) {
     return null;
   }
-
   return {
     id: row.reply_to_id,
     senderId: row.reply_to_sender_id,
@@ -128,7 +113,6 @@ const mapMessageReply = (
     createdAt: row.reply_to_created_at,
   };
 };
-
 const mapMessageFile = (
   row: Pick<
     MessageRow,
@@ -155,7 +139,6 @@ const mapMessageFile = (
   ) {
     return null;
   }
-
   return {
     id: row.file_id,
     messageId: row.file_message_id,
@@ -168,7 +151,6 @@ const mapMessageFile = (
     createdAt: row.file_created_at,
   };
 };
-
 const mapConversationRow = (row: ConversationRow): Conversation => ({
   id: row.id,
   userOneId: row.user_one_id,
@@ -176,7 +158,6 @@ const mapConversationRow = (row: ConversationRow): Conversation => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
-
 const mapConversationParticipantRow = (
   row: ConversationParticipantRow,
 ): ConversationParticipant => ({
@@ -186,7 +167,6 @@ const mapConversationParticipantRow = (
   hiddenAt: row.hidden_at,
   createdAt: row.created_at,
 });
-
 const mapMessageRow = (row: MessageRow): Message => ({
   id: row.id,
   conversationId: row.conversation_id,
@@ -200,7 +180,6 @@ const mapMessageRow = (row: MessageRow): Message => ({
   deletedAt: row.deleted_at,
   createdAt: row.created_at,
 });
-
 export const findConversationBetweenUsers = async (
   userOneId: number,
   userTwoId: number,
@@ -222,16 +201,12 @@ export const findConversationBetweenUsers = async (
     `,
     [userOneId, userTwoId, userTwoId, userOneId],
   );
-
   const conversation = rows[0];
-
   if (!conversation) {
     return null;
   }
-
   return mapConversationRow(conversation);
 };
-
 export const findConversationById = async (
   conversationId: number,
 ): Promise<Conversation | null> => {
@@ -249,16 +224,12 @@ export const findConversationById = async (
     `,
     [conversationId],
   );
-
   const conversation = rows[0];
-
   if (!conversation) {
     return null;
   }
-
   return mapConversationRow(conversation);
 };
-
 export const createConversation = async (
   userOneId: number,
   userTwoId: number,
@@ -273,10 +244,8 @@ export const createConversation = async (
     `,
     [userOneId, userTwoId],
   );
-
   return result.insertId;
 };
-
 export const findConversationParticipant = async (
   conversationId: number,
   userId: number,
@@ -296,16 +265,12 @@ export const findConversationParticipant = async (
     `,
     [conversationId, userId],
   );
-
   const participant = rows[0];
-
   if (!participant) {
     return null;
   }
-
   return mapConversationParticipantRow(participant);
 };
-
 export const createConversationParticipant = async (
   conversationId: number,
   userId: number,
@@ -320,10 +285,8 @@ export const createConversationParticipant = async (
     `,
     [conversationId, userId],
   );
-
   return result.insertId;
 };
-
 export const hideConversationForUser = async (
   conversationId: number,
   userId: number,
@@ -338,7 +301,6 @@ export const hideConversationForUser = async (
     [conversationId, userId],
   );
 };
-
 export const restoreConversationForUser = async (
   conversationId: number,
   userId: number,
@@ -353,7 +315,6 @@ export const restoreConversationForUser = async (
     [conversationId, userId],
   );
 };
-
 const messageSelect = `
   SELECT
     m.id,
@@ -361,15 +322,12 @@ const messageSelect = `
     m.sender_id,
     m.content,
     m.reply_to_message_id,
-
     rm.id AS reply_to_id,
     rm.sender_id AS reply_to_sender_id,
     rm.content AS reply_to_content,
     rm.is_deleted AS reply_to_is_deleted,
     rm.created_at AS reply_to_created_at,
-
     m.message_type,
-
     mf.id AS file_id,
     mf.message_id AS file_message_id,
     mf.original_name AS file_original_name,
@@ -379,7 +337,6 @@ const messageSelect = `
     mf.file_size AS file_size,
     mfd.downloaded_at AS file_downloaded_at,
     mf.created_at AS file_created_at,
-
     m.is_deleted,
     m.deleted_at,
     m.created_at
@@ -392,7 +349,6 @@ const messageSelect = `
     ON mfd.message_file_id = mf.id
    AND mfd.user_id = ?
 `;
-
 export const findMessagesByConversationId = async (
   conversationId: number,
   currentUserId: number,
@@ -405,10 +361,8 @@ export const findMessagesByConversationId = async (
     `,
     [currentUserId, conversationId],
   );
-
   return rows.map(mapMessageRow);
 };
-
 export const findMessageById = async (
   messageId: number,
   currentUserId?: number,
@@ -421,16 +375,12 @@ export const findMessageById = async (
     `,
     [currentUserId ?? 0, messageId],
   );
-
   const message = rows[0];
-
   if (!message) {
     return null;
   }
-
   return mapMessageRow(message);
 };
-
 export const createMessage = async (
   conversationId: number,
   senderId: number,
@@ -451,10 +401,8 @@ export const createMessage = async (
     `,
     [conversationId, senderId, content, replyToMessageId, messageType],
   );
-
   return result.insertId;
 };
-
 export const createMessageFile = async (
   messageId: number,
   originalName: string,
@@ -477,10 +425,8 @@ export const createMessageFile = async (
     `,
     [messageId, originalName, storedName, filePath, mimeType, fileSize],
   );
-
   return result.insertId;
 };
-
 export const findMessageFileById = async (
   fileId: number,
 ): Promise<MessageFileRow | null> => {
@@ -505,10 +451,8 @@ export const findMessageFileById = async (
     `,
     [fileId],
   );
-
   return rows[0] ?? null;
 };
-
 export const markMessageFileDownloaded = async (
   fileId: number,
   userId: number,
@@ -526,7 +470,6 @@ export const markMessageFileDownloaded = async (
     [fileId, userId],
   );
 };
-
 export const updateConversationTimestamp = async (
   conversationId: number,
 ): Promise<void> => {
@@ -539,7 +482,6 @@ export const updateConversationTimestamp = async (
     [conversationId],
   );
 };
-
 export const softDeleteMessage = async (messageId: number): Promise<void> => {
   await pool.execute(
     `
@@ -553,7 +495,6 @@ export const softDeleteMessage = async (messageId: number): Promise<void> => {
     [messageId],
   );
 };
-
 export const findConversationsByUserId = async (userId: number) => {
   const [rows] = await pool.query<ConversationListRow[]>(
     `
@@ -563,34 +504,28 @@ export const findConversationsByUserId = async (userId: number) => {
         c.user_two_id,
         c.created_at,
         c.updated_at,
-
         CASE
           WHEN c.user_one_id = ? THEN c.user_two_id
           ELSE c.user_one_id
         END AS other_user_id,
-
         CASE
           WHEN c.user_one_id = ? THEN u_two.name
           ELSE u_one.name
         END AS other_user_name,
-
         CASE
           WHEN c.user_one_id = ? THEN u_two.email
           ELSE u_one.email
         END AS other_user_email,
-
         m.content AS last_message_content,
         m.is_deleted AS last_message_is_deleted,
         m.sender_id AS last_message_sender_id,
         m.created_at AS last_message_created_at,
         m.message_type AS last_message_type,
-
         rm.id AS last_message_reply_to_id,
         rm.sender_id AS last_message_reply_to_sender_id,
         rm.content AS last_message_reply_to_content,
         rm.is_deleted AS last_message_reply_to_is_deleted,
         rm.created_at AS last_message_reply_to_created_at,
-
         mf.id AS last_file_id,
         mf.message_id AS last_file_message_id,
         mf.original_name AS last_file_original_name,
@@ -599,20 +534,15 @@ export const findConversationsByUserId = async (userId: number) => {
         mf.mime_type AS last_file_mime_type,
         mf.file_size AS last_file_size,
         mf.created_at AS last_file_created_at
-
       FROM conversations c
-
       INNER JOIN conversation_participants cp
         ON cp.conversation_id = c.id
         AND cp.user_id = ?
         AND cp.hidden_at IS NULL
-
       INNER JOIN users u_one
         ON u_one.id = c.user_one_id
-
       INNER JOIN users u_two
         ON u_two.id = c.user_two_id
-
       LEFT JOIN messages m
         ON m.id = (
           SELECT m2.id
@@ -621,17 +551,13 @@ export const findConversationsByUserId = async (userId: number) => {
           ORDER BY m2.created_at DESC, m2.id DESC
           LIMIT 1
         )
-
       LEFT JOIN messages rm
         ON rm.id = m.reply_to_message_id
-
       LEFT JOIN message_files mf
         ON mf.message_id = m.id
-
       ORDER BY c.updated_at DESC, c.id DESC
     `,
     [userId, userId, userId, userId],
   );
-
   return rows;
 };

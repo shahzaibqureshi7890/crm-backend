@@ -1,53 +1,41 @@
+import { v2 as cloudinary } from "cloudinary";
 import fs from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
-
-const CHAT_UPLOAD_DIRECTORY = path.join(process.cwd(), "uploads", "chat");
-
+(cloudinary as any).config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 export interface StoredChatFile {
   storedName: string;
   relativePath: string;
   absolutePath: string;
+  publicId: string;
 }
-
 export const saveChatFile = async (
   temporaryPath: string,
   originalName: string,
 ): Promise<StoredChatFile> => {
-  const now = new Date();
-
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-
-  const extension = path.extname(originalName).toLowerCase();
-
-  const storedName = `${crypto.randomUUID()}${extension}`;
-
-  const relativeDirectory = path.join("uploads", "chat", year, month);
-
-  const absoluteDirectory = path.join(process.cwd(), relativeDirectory);
-
-  await fs.mkdir(absoluteDirectory, {
-    recursive: true,
-  });
-
-  const absolutePath = path.join(absoluteDirectory, storedName);
-
-  await fs.rename(temporaryPath, absolutePath);
-
-  return {
-    storedName,
-    relativePath: path.join(relativeDirectory, storedName),
-    absolutePath,
-  };
-};
-
-export const deleteStoredChatFile = async (
-  absolutePath: string,
-): Promise<void> => {
   try {
-    await fs.unlink(absolutePath);
-  } catch {
-    // File may already have been removed.
+    const result = await cloudinary.uploader.upload(temporaryPath, {
+      folder: "crm/chat_files",
+      resource_type: "auto",
+    });
+    await fs.unlink(temporaryPath).catch(() => {});
+    return {
+      storedName: result.public_id,
+      relativePath: result.secure_url,
+      absolutePath: result.secure_url,
+      publicId: result.public_id,
+    };
+  } catch (error) {
+    await fs.unlink(temporaryPath).catch(() => {});
+    throw error;
   }
+};
+export const deleteStoredChatFile = async (publicId: string): Promise<void> => {
+  try {
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
+    }
+  } catch {}
 };

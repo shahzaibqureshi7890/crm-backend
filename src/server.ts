@@ -131,20 +131,19 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use(errorMiddleware);
-// Only listen locally, export app for Vercel Serverless Function
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  const startServer = async () => {
-    try {
-      await pool.query("SELECT 1");
-      console.log("MySQL database connected successfully.");
-      httpServer.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-      });
-    } catch (error) {
-      console.error("MySQL database connection failed:", error);
-      process.exit(1);
-    }
-  };
+const startServer = async () => {
+  try {
+    await pool.query("SELECT 1");
+    console.log("MySQL database connected successfully.");
+    httpServer.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("MySQL database connection failed:", error);
+    process.exit(1);
+  }
+};
+if (!process.env.VERCEL) {
   startServer();
 }
 export default app;
